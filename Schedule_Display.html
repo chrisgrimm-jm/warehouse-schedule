@@ -9,6 +9,7 @@
   :root {
     --bg: #000000;
     --panel: #2B283A;
+    --panel-card: #38344a;
     --red: #e63946;
     --gold: #ffd166;
     --text: #f2f2f2;
@@ -24,21 +25,26 @@
     overflow: hidden;
   }
   #wrap {
-    margin: 24px;
-    padding: 32px 48px;
+    box-sizing: border-box;
+    height: calc(100% - 40px);
+    margin: 20px;
+    padding: 24px 56px;
     background: var(--panel);
-    border-radius: 10px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
   }
   #header {
+    flex: 0 0 auto;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: baseline;
-    margin: 0 0 32px;
+    margin: 0 0 16px;
   }
   h1 {
     font-family: 'Bebas Neue', sans-serif;
-    letter-spacing: 4px;
-    font-size: 52px;
+    letter-spacing: 6px;
+    font-size: 56px;
     color: var(--red);
     margin: 0;
     text-align: center;
@@ -49,54 +55,56 @@
     grid-column: 3;
     justify-self: end;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 34px;
+    font-size: 38px;
     letter-spacing: 1px;
     color: var(--gold);
   }
-  #list { display: flex; flex-direction: column; gap: 16px; }
+  #list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transform-origin: top center;
+  }
   .card {
     display: grid;
-    grid-template-columns: 80px 1fr 360px;
+    grid-template-columns: 130px 1fr 480px;
     align-items: center;
-    gap: 24px;
-    background: var(--panel);
-    border-left: 6px solid var(--red);
-    border-radius: 6px;
-    padding: 18px 28px;
+    gap: 36px;
+    background: var(--panel-card);
+    border-left: 8px solid var(--red);
+    border-radius: 10px;
+    padding: 22px 44px;
   }
   .card.live { border-left-color: var(--gold); }
   .game-badge {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 30px;
+    font-size: 48px;
     color: var(--gold);
     text-align: center;
     line-height: 1;
   }
-  .game-badge span { display: block; font-size: 11px; color: var(--sub); letter-spacing: 1px; margin-top: 2px; }
+  .game-badge span { display: block; font-size: 16px; color: var(--sub); letter-spacing: 1px; margin-top: 4px; }
 
-  .matchup { display: flex; align-items: center; gap: 18px; }
+  .matchup { display: flex; align-items: center; gap: 28px; }
   .team { flex: 1; }
-  .team .name { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.5px; line-height: 1.1; }
-  .team .role { font-size: 11px; color: var(--sub); letter-spacing: 1px; }
-  .at { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--sub); }
+  .team .name { font-family: 'Bebas Neue', sans-serif; font-size: 72px; letter-spacing: 0.5px; line-height: 1.1; }
+  .team .role { font-size: 20px; color: var(--sub); letter-spacing: 1px; }
+  .at { font-family: 'Bebas Neue', sans-serif; font-size: 42px; color: var(--sub); }
 
-  .milestones { display: flex; flex-direction: column; gap: 4px; }
-  .ms-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--sub); }
-  .ms-row .t { color: var(--text); }
-  .ms-row.done { opacity: 0.4; }
-  .ms-row.current .lbl { color: var(--gold); font-weight: bold; }
-  .ms-row.current .t { color: var(--gold); font-weight: bold; }
   .countdown {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 30px;
+    font-size: 72px;
     letter-spacing: 1px;
     color: var(--gold);
-    margin-top: 4px;
+    text-align: right;
   }
   .card.live .countdown { animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
-  .countdown .lbl { font-size: 13px; color: var(--sub); display: block; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
-  .empty { text-align: center; color: var(--sub); font-size: 22px; margin-top: 80px; }
+  .countdown .lbl { font-size: 20px; color: var(--sub); display: block; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
+  .empty { text-align: center; color: var(--sub); font-size: 32px; margin-top: 80px; }
 </style>
 </head>
 <body>
@@ -162,13 +170,6 @@ const sortKey = i => kindOf(i) === 'game' ? i.firstPitch : i.time;
 function gameCard(i, now) {
   const next = MILESTONES.find(m => timeToday(i[m.key]).getTime() > now);
   const live = !next;
-  const msHtml = MILESTONES.map(m => {
-    const passed = timeToday(i[m.key]).getTime() <= now;
-    const isCurrent = next && m.key === next.key;
-    return `<div class="ms-row ${passed ? 'done' : ''} ${isCurrent ? 'current' : ''}">
-      <span class="lbl">${m.label}</span><span class="t">${fmtTime(i[m.key])}</span>
-    </div>`;
-  }).join('');
   const countdownHtml = live
     ? `<span class="lbl">STATUS</span>LIVE NOW`
     : `<span class="lbl">${next.label} IN</span>${fmtCountdown(timeToday(i[next.key]) - now)}`;
@@ -180,10 +181,7 @@ function gameCard(i, now) {
         <div class="at">@</div>
         <div class="team"><div class="role">HOME</div><div class="name">${i.home}</div></div>
       </div>
-      <div>
-        <div class="milestones">${msHtml}</div>
-        <div class="countdown">${countdownHtml}</div>
-      </div>
+      <div class="countdown">${countdownHtml}</div>
     </div>
   `;
 }
@@ -195,7 +193,7 @@ function sectionCard(i, now) {
     ? `<span class="lbl">STATUS</span>LIVE NOW`
     : `<span class="lbl">STARTS IN</span>${fmtCountdown(start - now)}`;
   return `
-    <div class="card ${live ? 'live' : ''}" style="grid-template-columns:1fr 360px">
+    <div class="card ${live ? 'live' : ''}" style="grid-template-columns:1fr 480px">
       <div class="matchup">
         <div class="team"><div class="name">${SECTION_LABELS[i.kind]}</div><div class="role">STARTS AT ${fmtTime(i.time)}</div></div>
       </div>
@@ -204,6 +202,13 @@ function sectionCard(i, now) {
       </div>
     </div>
   `;
+}
+
+function fitList() {
+  const list = document.getElementById('list');
+  list.style.transform = 'none';
+  const factor = list.scrollHeight > list.clientHeight ? list.clientHeight / list.scrollHeight : 1;
+  list.style.transform = factor < 1 ? `scale(${factor})` : 'none';
 }
 
 function render() {
@@ -215,6 +220,7 @@ function render() {
   const sorted = [...items].sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   const now = Date.now();
   list.innerHTML = sorted.map(i => kindOf(i) === 'game' ? gameCard(i, now) : sectionCard(i, now)).join('');
+  fitList();
 }
 
 function renderClock() {
