@@ -70,7 +70,7 @@
     gap: 14px;
     margin-bottom: 14px;
   }
-  .add-grid.times { grid-template-columns: 1fr 1fr 1fr; }
+  .add-grid.times { grid-template-columns: 1fr 1fr; }
 
   .add-btn {
     background: var(--red);
@@ -183,10 +183,6 @@
       <div id="newTechWrap"></div>
     </div>
     <div>
-      <label class="field">Player Intros</label>
-      <div id="newIntrosWrap"></div>
-    </div>
-    <div>
       <label class="field">First Pitch</label>
       <div id="newFirstPitchWrap"></div>
     </div>
@@ -279,7 +275,6 @@ function onPickerChange(selectEl) {
 }
 
 document.getElementById('newTechWrap').innerHTML = timePickerHTML('newTech', '');
-document.getElementById('newIntrosWrap').innerHTML = timePickerHTML('newIntros', '');
 document.getElementById('newFirstPitchWrap').innerHTML = timePickerHTML('newFirstPitch', '');
 document.getElementById('newSectionTimeWrap').innerHTML = timePickerHTML('newSectionTime', '');
 
@@ -325,7 +320,6 @@ function addItem() {
       away: document.getElementById('newAway').value,
       home: document.getElementById('newHome').value,
       tech: readTimePicker('newTech'),
-      intros: readTimePicker('newIntros'),
       firstPitch: readTimePicker('newFirstPitch')
     });
   } else {
@@ -378,10 +372,6 @@ function gameCard(i, idx) {
         <div>
           <label class="field">Tech Crew Places</label>
           ${timePickerHTML('tp_' + i.id + '_tech', i.tech, i.id, 'tech')}
-        </div>
-        <div>
-          <label class="field">Player Intros</label>
-          ${timePickerHTML('tp_' + i.id + '_intros', i.intros, i.id, 'intros')}
         </div>
         <div>
           <label class="field">First Pitch</label>
