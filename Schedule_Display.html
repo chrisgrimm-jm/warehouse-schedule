@@ -180,7 +180,10 @@ function gameCard(i, now, isNext) {
   const live = isNext && !next;
   const msLeft = isNext && next ? timeToday(i[next.key]) - now : Infinity;
   const warning = isNext && !live && msLeft <= WARNING_MS;
-  const milestonesHtml = `<div class="milestones">${MILESTONES.map(m => {
+  const milestonesHtml = `<div class="milestones">${MILESTONES.filter(m => {
+    const passed = timeToday(i[m.key]).getTime() <= now;
+    return !isNext || !passed;
+  }).map(m => {
     const passed = timeToday(i[m.key]).getTime() <= now;
     const isCurrent = next && m.key === next.key;
     const showCountdown = isNext && warning && !passed && !isCurrent;
