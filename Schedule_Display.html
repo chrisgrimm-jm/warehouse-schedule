@@ -102,6 +102,7 @@
     letter-spacing: 1px;
     color: var(--gold);
     text-align: right;
+    margin-top: 10px;
   }
   .card.live .countdown { animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
@@ -178,17 +179,18 @@ function gameCard(i, now, isNext) {
   const live = isNext && !next;
   const msLeft = isNext && next ? timeToday(i[next.key]) - now : Infinity;
   const warning = isNext && !live && msLeft <= WARNING_MS;
-  let rightHtml;
-  if (!isNext) {
-    rightHtml = `<div class="milestones">${MILESTONES.map(m => `
+  const milestonesHtml = `<div class="milestones">${MILESTONES.map(m => `
       <div class="ms-row ${next && m.key === next.key ? 'current' : ''}">
         <span class="lbl">${m.label}</span><span class="t">${fmtTime(i[m.key])}</span>
       </div>`).join('')}</div>`;
+  let rightHtml;
+  if (!isNext) {
+    rightHtml = milestonesHtml;
   } else {
     const countdownHtml = live
       ? `<span class="lbl">STATUS</span>LIVE NOW`
       : `<span class="lbl">${next.label} IN</span>${fmtCountdown(msLeft)}`;
-    rightHtml = `<div class="countdown">${countdownHtml}</div>`;
+    rightHtml = `<div>${milestonesHtml}<div class="countdown">${countdownHtml}</div></div>`;
   }
   return `
     <div class="card ${live ? 'live' : ''} ${warning ? 'warning' : ''}">
