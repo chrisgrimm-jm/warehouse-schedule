@@ -68,7 +68,7 @@
     gap: 14px;
     margin-bottom: 14px;
   }
-  .add-grid.times { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .add-grid.times { grid-template-columns: 1fr 1fr 1fr; }
 
   .add-btn {
     background: var(--red);
@@ -164,25 +164,21 @@
   <div id="newGameTimesRow" class="add-grid times">
     <div>
       <label class="field">Tech Crew Places</label>
-      <input type="time" id="newTech">
+      <input type="time" step="60" id="newTech">
     </div>
     <div>
       <label class="field">Player Intros</label>
-      <input type="time" id="newIntros">
+      <input type="time" step="60" id="newIntros">
     </div>
     <div>
       <label class="field">First Pitch</label>
-      <input type="time" id="newFirstPitch">
-    </div>
-    <div>
-      <label class="field">Shorts Filming</label>
-      <input type="time" id="newShorts">
+      <input type="time" step="60" id="newFirstPitch">
     </div>
   </div>
   <div id="newSectionTimeRow" class="add-grid" style="grid-template-columns:1fr;display:none">
     <div>
       <label class="field">Start Time</label>
-      <input type="time" id="newSectionTime">
+      <input type="time" step="60" id="newSectionTime">
     </div>
   </div>
   <button class="add-btn" onclick="addItem()">+ Add</button>
@@ -260,20 +256,18 @@ function addItem() {
     const tech = document.getElementById('newTech').value;
     const intros = document.getElementById('newIntros').value;
     const firstPitch = document.getElementById('newFirstPitch').value;
-    const shorts = document.getElementById('newShorts').value;
-    if (!tech || !intros || !firstPitch || !shorts) { document.getElementById('newShorts').focus(); return; }
+    if (!tech || !intros || !firstPitch) { document.getElementById('newFirstPitch').focus(); return; }
     items.push({
       id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       kind: 'game',
       gameNum: document.getElementById('newGameNum').value,
       away: document.getElementById('newAway').value,
       home: document.getElementById('newHome').value,
-      tech, intros, firstPitch, shorts
+      tech, intros, firstPitch
     });
     document.getElementById('newTech').value = '';
     document.getElementById('newIntros').value = '';
     document.getElementById('newFirstPitch').value = '';
-    document.getElementById('newShorts').value = '';
   } else {
     const time = document.getElementById('newSectionTime').value;
     if (!time) { document.getElementById('newSectionTime').focus(); return; }
@@ -316,19 +310,15 @@ function gameCard(i) {
       <div class="add-grid times" style="grid-column:2/4;margin:0">
         <div>
           <label class="field">Tech Crew Places</label>
-          <input type="time" value="${i.tech}" onchange="updateField('${i.id}','tech',this.value)">
+          <input type="time" step="60" value="${i.tech}" onchange="updateField('${i.id}','tech',this.value)">
         </div>
         <div>
           <label class="field">Player Intros</label>
-          <input type="time" value="${i.intros}" onchange="updateField('${i.id}','intros',this.value)">
+          <input type="time" step="60" value="${i.intros}" onchange="updateField('${i.id}','intros',this.value)">
         </div>
         <div>
           <label class="field">First Pitch</label>
-          <input type="time" value="${i.firstPitch}" onchange="updateField('${i.id}','firstPitch',this.value)">
-        </div>
-        <div>
-          <label class="field">Shorts Filming</label>
-          <input type="time" value="${i.shorts}" onchange="updateField('${i.id}','shorts',this.value)">
+          <input type="time" step="60" value="${i.firstPitch}" onchange="updateField('${i.id}','firstPitch',this.value)">
         </div>
       </div>
     </div>
@@ -339,7 +329,7 @@ function sectionCard(i) {
   return `
     <div class="section-card">
       <div class="section-label">${SECTION_LABELS[i.kind]}</div>
-      <input type="time" value="${i.time}" onchange="updateField('${i.id}','time',this.value)">
+      <input type="time" step="60" value="${i.time}" onchange="updateField('${i.id}','time',this.value)">
       <button class="del-btn" onclick="removeItem('${i.id}')">×</button>
     </div>
   `;
