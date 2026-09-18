@@ -156,6 +156,56 @@ const MILESTONES = [
   { key: 'firstPitch', label: 'FIRST PITCH' },
   { key: 'shorts', label: 'SHORTS FILMING' }
 ];
+const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
+const kindOf = i => i.kind || 'game';
+const sortKey = i => kindOf(i) === 'game' ? i.firstPitch : i.time;
+
+function gameCard(i, now) {
+  const next = MILESTONES.find(m => timeToday(i[m.key]).getTime() > now);
+  const live = !next;
+  const msHtml = MILESTONES.map(m => {
+    const passed = timeToday(i[m.key]).getTime() <= now;
+    const isCurrent = next && m.key === next.key;
+    return `<div class="ms-row ${passed ? 'done' : ''} ${isCurrent ? 'current' : ''}">
+      <span class="lbl">${m.label}</span><span class="t">${fmtTime(i[m.key])}</span>
+    </div>`;
+  }).join('');
+  const countdownHtml = live
+    ? `<span class="lbl">STATUS</span>LIVE NOW`
+    : `<span class="lbl">${next.label} IN</span>${fmtCountdown(timeToday(i[next.key]) - now)}`;
+  return `
+    <div class="card ${live ? 'live' : ''}">
+      <div class="game-badge">G${i.gameNum}<span>GAME</span></div>
+      <div class="matchup">
+        <div class="team"><div class="role">AWAY</div><div class="name">${i.away}</div></div>
+        <div class="at">@</div>
+        <div class="team"><div class="role">HOME</div><div class="name">${i.home}</div></div>
+      </div>
+      <div>
+        <div class="milestones">${msHtml}</div>
+        <div class="countdown">${countdownHtml}</div>
+      </div>
+    </div>
+  `;
+}
+
+function sectionCard(i, now) {
+  const start = timeToday(i.time).getTime();
+  const live = now >= start;
+  const countdownHtml = live
+    ? `<span class="lbl">STATUS</span>LIVE NOW`
+    : `<span class="lbl">STARTS IN</span>${fmtCountdown(start - now)}`;
+  return `
+    <div class="card ${live ? 'live' : ''}" style="grid-template-columns:1fr 360px">
+      <div class="matchup">
+        <div class="team"><div class="name">${SECTION_LABELS[i.kind]}</div><div class="role">STARTS AT ${fmtTime(i.time)}</div></div>
+      </div>
+      <div>
+        <div class="countdown">${countdownHtml}</div>
+      </div>
+    </div>
+  `;
+}
 
 function render() {
   const list = document.getElementById('list');
@@ -163,36 +213,9 @@ function render() {
     list.innerHTML = '<div class="empty">No games scheduled.</div>';
     return;
   }
-  const sorted = [...items].sort((a, b) => a.firstPitch.localeCompare(b.firstPitch));
+  const sorted = [...items].sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   const now = Date.now();
-  list.innerHTML = sorted.map(i => {
-    const next = MILESTONES.find(m => timeToday(i[m.key]).getTime() > now);
-    const live = !next;
-    const msHtml = MILESTONES.map(m => {
-      const passed = timeToday(i[m.key]).getTime() <= now;
-      const isCurrent = next && m.key === next.key;
-      return `<div class="ms-row ${passed ? 'done' : ''} ${isCurrent ? 'current' : ''}">
-        <span class="lbl">${m.label}</span><span class="t">${fmtTime(i[m.key])}</span>
-      </div>`;
-    }).join('');
-    const countdownHtml = live
-      ? `<span class="lbl">STATUS</span>LIVE NOW`
-      : `<span class="lbl">${next.label} IN</span>${fmtCountdown(timeToday(i[next.key]) - now)}`;
-    return `
-      <div class="card ${live ? 'live' : ''}">
-        <div class="game-badge">G${i.gameNum}<span>GAME</span></div>
-        <div class="matchup">
-          <div class="team"><div class="role">AWAY</div><div class="name">${i.away}</div></div>
-          <div class="at">@</div>
-          <div class="team"><div class="role">HOME</div><div class="name">${i.home}</div></div>
-        </div>
-        <div>
-          <div class="milestones">${msHtml}</div>
-          <div class="countdown">${countdownHtml}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
+  list.innerHTML = sorted.map(i => kindOf(i) === 'game' ? gameCard(i, now) : sectionCard(i, now)).join('');
 }
 
 function renderClock() {

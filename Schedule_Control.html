@@ -98,6 +98,21 @@
     text-align: center;
   }
   .game-badge span { display: block; font-size: 10px; color: var(--sub); letter-spacing: 1px; }
+  .section-card {
+    display: grid;
+    grid-template-columns: 1fr 200px 32px;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid #222;
+  }
+  .section-card:last-child { border-bottom: none; }
+  .section-card .section-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: var(--gold);
+  }
   .del-btn {
     background: #2a2a2a;
     color: var(--sub);
@@ -123,22 +138,30 @@
 </div>
 
 <div class="panel">
-  <h2>Add Game</h2>
-  <div class="add-grid">
+  <h2>Add Item</h2>
+  <div class="add-grid" style="grid-template-columns:180px 90px 1fr 1fr">
     <div>
+      <label class="field">Type</label>
+      <select id="newType" onchange="toggleAddFields()">
+        <option value="game">Game</option>
+        <option value="shorts">Shorts Filming</option>
+        <option value="headshots">Headshots</option>
+      </select>
+    </div>
+    <div id="newGameNumWrap">
       <label class="field">Game #</label>
       <select id="newGameNum"><option>1</option><option>2</option><option>3</option><option>4</option></select>
     </div>
-    <div>
+    <div id="newAwayWrap">
       <label class="field">Away Team</label>
       <select id="newAway"></select>
     </div>
-    <div>
+    <div id="newHomeWrap">
       <label class="field">Home Team</label>
       <select id="newHome"></select>
     </div>
   </div>
-  <div class="add-grid times">
+  <div id="newGameTimesRow" class="add-grid times">
     <div>
       <label class="field">Tech Crew Places</label>
       <input type="time" id="newTech">
@@ -156,7 +179,13 @@
       <input type="time" id="newShorts">
     </div>
   </div>
-  <button class="add-btn" onclick="addGame()">+ Add Game</button>
+  <div id="newSectionTimeRow" class="add-grid" style="grid-template-columns:1fr;display:none">
+    <div>
+      <label class="field">Start Time</label>
+      <input type="time" id="newSectionTime">
+    </div>
+  </div>
+  <button class="add-btn" onclick="addItem()">+ Add</button>
 </div>
 
 <div class="panel">
@@ -199,6 +228,10 @@ function teamOptions(selectedIndex) {
   document.getElementById(id).innerHTML = teamOptions(i);
 });
 
+const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
+const kindOf = i => i.kind || 'game';
+const sortKey = i => kindOf(i) === 'game' ? i.firstPitch : i.time;
+
 let items = [];
 
 ref.on('value', snap => {
@@ -208,28 +241,50 @@ ref.on('value', snap => {
 });
 
 function save() {
-  items.sort((a, b) => a.firstPitch.localeCompare(b.firstPitch));
+  items.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   ref.set({ items, updatedAt: Date.now() });
 }
 
-function addGame() {
-  const tech = document.getElementById('newTech').value;
-  const intros = document.getElementById('newIntros').value;
-  const firstPitch = document.getElementById('newFirstPitch').value;
-  const shorts = document.getElementById('newShorts').value;
-  if (!tech || !intros || !firstPitch || !shorts) { document.getElementById('newShorts').focus(); return; }
-  items.push({
-    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-    gameNum: document.getElementById('newGameNum').value,
-    away: document.getElementById('newAway').value,
-    home: document.getElementById('newHome').value,
-    tech, intros, firstPitch, shorts
-  });
+function toggleAddFields() {
+  const isGame = document.getElementById('newType').value === 'game';
+  document.getElementById('newGameNumWrap').style.display = isGame ? '' : 'none';
+  document.getElementById('newAwayWrap').style.display = isGame ? '' : 'none';
+  document.getElementById('newHomeWrap').style.display = isGame ? '' : 'none';
+  document.getElementById('newGameTimesRow').style.display = isGame ? '' : 'none';
+  document.getElementById('newSectionTimeRow').style.display = isGame ? 'none' : '';
+}
+
+function addItem() {
+  const type = document.getElementById('newType').value;
+  if (type === 'game') {
+    const tech = document.getElementById('newTech').value;
+    const intros = document.getElementById('newIntros').value;
+    const firstPitch = document.getElementById('newFirstPitch').value;
+    const shorts = document.getElementById('newShorts').value;
+    if (!tech || !intros || !firstPitch || !shorts) { document.getElementById('newShorts').focus(); return; }
+    items.push({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      kind: 'game',
+      gameNum: document.getElementById('newGameNum').value,
+      away: document.getElementById('newAway').value,
+      home: document.getElementById('newHome').value,
+      tech, intros, firstPitch, shorts
+    });
+    document.getElementById('newTech').value = '';
+    document.getElementById('newIntros').value = '';
+    document.getElementById('newFirstPitch').value = '';
+    document.getElementById('newShorts').value = '';
+  } else {
+    const time = document.getElementById('newSectionTime').value;
+    if (!time) { document.getElementById('newSectionTime').focus(); return; }
+    items.push({
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      kind: type,
+      time
+    });
+    document.getElementById('newSectionTime').value = '';
+  }
   save();
-  document.getElementById('newTech').value = '';
-  document.getElementById('newIntros').value = '';
-  document.getElementById('newFirstPitch').value = '';
-  document.getElementById('newShorts').value = '';
 }
 
 function updateField(id, field, value) {
@@ -239,19 +294,13 @@ function updateField(id, field, value) {
   save();
 }
 
-function removeGame(id) {
+function removeItem(id) {
   items = items.filter(i => i.id !== id);
   save();
 }
 
-function render() {
-  const list = document.getElementById('list');
-  if (!items.length) {
-    list.innerHTML = '<div class="empty">No games scheduled yet.</div>';
-    return;
-  }
-  const sorted = [...items].sort((a, b) => a.firstPitch.localeCompare(b.firstPitch));
-  list.innerHTML = sorted.map(i => `
+function gameCard(i) {
+  return `
     <div class="game-card">
       <div class="game-badge">G${i.gameNum}<span>GAME</span></div>
       <div>
@@ -262,7 +311,7 @@ function render() {
         <label class="field">Home</label>
         <select onchange="updateField('${i.id}','home',this.value)">${teamOptions(FRANCHISES.indexOf(i.home))}</select>
       </div>
-      <button class="del-btn" onclick="removeGame('${i.id}')">×</button>
+      <button class="del-btn" onclick="removeItem('${i.id}')">×</button>
       <div style="grid-column:1/2"></div>
       <div class="add-grid times" style="grid-column:2/4;margin:0">
         <div>
@@ -283,7 +332,27 @@ function render() {
         </div>
       </div>
     </div>
-  `).join('');
+  `;
+}
+
+function sectionCard(i) {
+  return `
+    <div class="section-card">
+      <div class="section-label">${SECTION_LABELS[i.kind]}</div>
+      <input type="time" value="${i.time}" onchange="updateField('${i.id}','time',this.value)">
+      <button class="del-btn" onclick="removeItem('${i.id}')">×</button>
+    </div>
+  `;
+}
+
+function render() {
+  const list = document.getElementById('list');
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">No games scheduled yet.</div>';
+    return;
+  }
+  const sorted = [...items].sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+  list.innerHTML = sorted.map(i => kindOf(i) === 'game' ? gameCard(i) : sectionCard(i)).join('');
 }
 </script>
 </body>
