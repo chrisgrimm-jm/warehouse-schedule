@@ -61,6 +61,11 @@
     width: 100%;
   }
   input:focus, select:focus { outline: none; border-color: var(--red); }
+  input[type="time"]::-webkit-datetime-edit-second-field,
+  input[type="time"]::-webkit-datetime-edit-millisecond-field,
+  input[type="time"]::-webkit-datetime-edit-fractional-second-field {
+    display: none;
+  }
 
   .add-grid {
     display: grid;
