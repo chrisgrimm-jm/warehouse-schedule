@@ -104,6 +104,11 @@
   .card.live .countdown { animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
   .countdown .lbl { font-size: 20px; color: var(--sub); display: block; letter-spacing: 1px; font-family: 'DM Mono', monospace; }
+  .countdown.static { color: var(--text); }
+  .milestones { display: flex; flex-direction: column; gap: 6px; }
+  .ms-row { display: flex; justify-content: space-between; gap: 20px; font-size: 22px; color: var(--sub); }
+  .ms-row .t { color: var(--text); }
+  .ms-row.current .lbl, .ms-row.current .t { color: var(--gold); }
   .empty { text-align: center; color: var(--sub); font-size: 32px; margin-top: 80px; }
 </style>
 </head>
@@ -167,12 +172,21 @@ const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
 const kindOf = i => i.kind || 'game';
 const sortKey = i => kindOf(i) === 'game' ? i.firstPitch : i.time;
 
-function gameCard(i, now) {
+function gameCard(i, now, isNext) {
   const next = MILESTONES.find(m => timeToday(i[m.key]).getTime() > now);
-  const live = !next;
-  const countdownHtml = live
-    ? `<span class="lbl">STATUS</span>LIVE NOW`
-    : `<span class="lbl">${next.label} IN</span>${fmtCountdown(timeToday(i[next.key]) - now)}`;
+  const live = isNext && !next;
+  let rightHtml;
+  if (!isNext) {
+    rightHtml = `<div class="milestones">${MILESTONES.map(m => `
+      <div class="ms-row ${next && m.key === next.key ? 'current' : ''}">
+        <span class="lbl">${m.label}</span><span class="t">${fmtTime(i[m.key])}</span>
+      </div>`).join('')}</div>`;
+  } else {
+    const countdownHtml = live
+      ? `<span class="lbl">STATUS</span>LIVE NOW`
+      : `<span class="lbl">${next.label} IN</span>${fmtCountdown(timeToday(i[next.key]) - now)}`;
+    rightHtml = `<div class="countdown">${countdownHtml}</div>`;
+  }
   return `
     <div class="card ${live ? 'live' : ''}">
       <div class="game-badge">G${i.gameNum}<span>GAME</span></div>
@@ -181,25 +195,25 @@ function gameCard(i, now) {
         <div class="at">@</div>
         <div class="team"><div class="role">HOME</div><div class="name">${i.home}</div></div>
       </div>
-      <div class="countdown">${countdownHtml}</div>
+      ${rightHtml}
     </div>
   `;
 }
 
-function sectionCard(i, now) {
+function sectionCard(i, now, isNext) {
   const start = timeToday(i.time).getTime();
-  const live = now >= start;
-  const countdownHtml = live
-    ? `<span class="lbl">STATUS</span>LIVE NOW`
-    : `<span class="lbl">STARTS IN</span>${fmtCountdown(start - now)}`;
+  const live = isNext && now >= start;
+  const countdownHtml = !isNext
+    ? `<span class="lbl">STARTS AT</span>${fmtTime(i.time)}`
+    : live
+      ? `<span class="lbl">STATUS</span>LIVE NOW`
+      : `<span class="lbl">STARTS IN</span>${fmtCountdown(start - now)}`;
   return `
     <div class="card ${live ? 'live' : ''}" style="grid-template-columns:1fr 480px">
       <div class="matchup">
-        <div class="team"><div class="name">${SECTION_LABELS[i.kind]}</div><div class="role">STARTS AT ${fmtTime(i.time)}</div></div>
+        <div class="team"><div class="name">${SECTION_LABELS[i.kind]}</div></div>
       </div>
-      <div>
-        <div class="countdown">${countdownHtml}</div>
-      </div>
+      <div class="countdown ${isNext ? '' : 'static'}">${countdownHtml}</div>
     </div>
   `;
 }
@@ -219,7 +233,7 @@ function render() {
   }
   const sorted = [...items].sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   const now = Date.now();
-  list.innerHTML = sorted.map(i => kindOf(i) === 'game' ? gameCard(i, now) : sectionCard(i, now)).join('');
+  list.innerHTML = sorted.map((i, idx) => kindOf(i) === 'game' ? gameCard(i, now, idx === 0) : sectionCard(i, now, idx === 0)).join('');
   fitList();
 }
 
