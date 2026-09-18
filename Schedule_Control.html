@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Warehouse Games — Schedule Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --panel: #131313;
+    --red: #e63946;
+    --gold: #ffd166;
+    --text: #f2f2f2;
+    --sub: #8a8a8a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    padding: 32px;
+  }
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    font-size: 42px;
+    color: var(--red);
+    margin: 0 0 4px;
+  }
+  .sub { color: var(--sub); margin-bottom: 24px; font-size: 13px; }
+  .sub b { color: var(--gold); }
+  #status { display: inline-block; margin-left: 10px; font-size: 12px; }
+  #status.ok::before { content: "●"; color: #4caf50; margin-right: 4px; }
+  #status.bad::before { content: "●"; color: var(--red); margin-right: 4px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 1px;
+    font-size: 22px;
+    margin: 0 0 14px;
+    color: var(--text);
+  }
+  label.field { display: block; font-size: 11px; color: var(--sub); letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+  input, select {
+    background: #1c1c1c;
+    border: 1px solid #333;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    padding: 9px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    width: 100%;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--red); }
+
+  .add-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .add-grid.times { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  .add-btn {
+    background: var(--red);
+    color: white;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 1px;
+    font-size: 18px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .game-card {
+    display: grid;
+    grid-template-columns: 70px 1fr 1fr 32px;
+    gap: 16px;
+    align-items: start;
+    padding: 16px 0;
+    border-bottom: 1px solid #222;
+  }
+  .game-card:last-child { border-bottom: none; }
+  .game-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    color: var(--gold);
+    text-align: center;
+  }
+  .game-badge span { display: block; font-size: 10px; color: var(--sub); letter-spacing: 1px; }
+  .del-btn {
+    background: #2a2a2a;
+    color: var(--sub);
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    align-self: center;
+  }
+  .del-btn:hover { background: var(--red); color: white; }
+  .empty { color: var(--sub); font-style: italic; padding: 10px 0; }
+  .display-link { color: var(--gold); text-decoration: none; font-size: 13px; }
+  .display-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>WAREHOUSE GAMES <span style="color:var(--text)">— SCHEDULE CONTROL</span><span id="status" class="bad">connecting</span></h1>
+<div class="sub">Topic: <b id="topicLabel"></b> — changes push live to every display instantly. &nbsp;
+  <a class="display-link" id="displayLink" href="#" target="_blank">Open Display →</a>
+</div>
+
+<div class="panel">
+  <h2>Add Game</h2>
+  <div class="add-grid">
+    <div>
+      <label class="field">Game #</label>
+      <select id="newGameNum"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+    </div>
+    <div>
+      <label class="field">Away Team</label>
+      <select id="newAway"></select>
+    </div>
+    <div>
+      <label class="field">Home Team</label>
+      <select id="newHome"></select>
+    </div>
+  </div>
+  <div class="add-grid times">
+    <div>
+      <label class="field">Tech Crew Places</label>
+      <input type="time" id="newTech">
+    </div>
+    <div>
+      <label class="field">Player Intros</label>
+      <input type="time" id="newIntros">
+    </div>
+    <div>
+      <label class="field">First Pitch</label>
+      <input type="time" id="newFirstPitch">
+    </div>
+    <div>
+      <label class="field">Shorts Filming</label>
+      <input type="time" id="newShorts">
+    </div>
+  </div>
+  <button class="add-btn" onclick="addGame()">+ Add Game</button>
+</div>
+
+<div class="panel">
+  <h2>Schedule</h2>
+  <div id="list"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script>
+const FRANCHISES = [
+  "Team Baggage", "Caribe", "Forgotten Rotten", "Macflurry Power",
+  "We Got Ice", "Woogas", "Potential Losers", "Hopeful Winners"
+];
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBG2PS2muH4i27HefuLeBnZWW-TZ5dkMCw",
+  databaseURL: "https://pinpoint-abf21-default-rtdb.firebaseio.com"
+});
+const _db = firebase.database();
+
+const params = new URLSearchParams(location.search);
+const topic = params.get('topic') || 'default';
+const fbKey = t => t.trim().replace(/[.#$\[\]\/\s]+/g, '-');
+const ref = _db.ref('warehouse-schedule/' + fbKey(topic) + '/state');
+
+document.getElementById('topicLabel').textContent = topic;
+document.getElementById('displayLink').href = 'Schedule_Display.html?topic=' + encodeURIComponent(topic);
+
+_db.ref('.info/connected').on('value', snap => {
+  const el = document.getElementById('status');
+  if (snap.val() === true) { el.className = 'ok'; el.textContent = 'live'; }
+  else { el.className = 'bad'; el.textContent = 'connecting'; }
+});
+
+function teamOptions(selectedIndex) {
+  return FRANCHISES.map((name, i) => `<option value="${name}" ${i === selectedIndex ? 'selected' : ''}>${name}</option>`).join('');
+}
+['newAway', 'newHome'].forEach((id, i) => {
+  document.getElementById(id).innerHTML = teamOptions(i);
+});
+
+let items = [];
+
+ref.on('value', snap => {
+  const val = snap.val();
+  items = val && val.items ? (Array.isArray(val.items) ? val.items : Object.values(val.items)) : [];
+  render();
+});
+
+function save() {
+  items.sort((a, b) => a.firstPitch.localeCompare(b.firstPitch));
+  ref.set({ items, updatedAt: Date.now() });
+}
+
+function addGame() {
+  const tech = document.getElementById('newTech').value;
+  const intros = document.getElementById('newIntros').value;
+  const firstPitch = document.getElementById('newFirstPitch').value;
+  const shorts = document.getElementById('newShorts').value;
+  if (!tech || !intros || !firstPitch || !shorts) { document.getElementById('newShorts').focus(); return; }
+  items.push({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    gameNum: document.getElementById('newGameNum').value,
+    away: document.getElementById('newAway').value,
+    home: document.getElementById('newHome').value,
+    tech, intros, firstPitch, shorts
+  });
+  save();
+  document.getElementById('newTech').value = '';
+  document.getElementById('newIntros').value = '';
+  document.getElementById('newFirstPitch').value = '';
+  document.getElementById('newShorts').value = '';
+}
+
+function updateField(id, field, value) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item[field] = value;
+  save();
+}
+
+function removeGame(id) {
+  items = items.filter(i => i.id !== id);
+  save();
+}
+
+function render() {
+  const list = document.getElementById('list');
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">No games scheduled yet.</div>';
+    return;
+  }
+  const sorted = [...items].sort((a, b) => a.firstPitch.localeCompare(b.firstPitch));
+  list.innerHTML = sorted.map(i => `
+    <div class="game-card">
+      <div class="game-badge">G${i.gameNum}<span>GAME</span></div>
+      <div>
+        <label class="field">Away</label>
+        <select onchange="updateField('${i.id}','away',this.value)">${teamOptions(FRANCHISES.indexOf(i.away))}</select>
+      </div>
+      <div>
+        <label class="field">Home</label>
+        <select onchange="updateField('${i.id}','home',this.value)">${teamOptions(FRANCHISES.indexOf(i.home))}</select>
+      </div>
+      <button class="del-btn" onclick="removeGame('${i.id}')">×</button>
+      <div style="grid-column:1/2"></div>
+      <div class="add-grid times" style="grid-column:2/4;margin:0">
+        <div>
+          <label class="field">Tech Crew Places</label>
+          <input type="time" value="${i.tech}" onchange="updateField('${i.id}','tech',this.value)">
+        </div>
+        <div>
+          <label class="field">Player Intros</label>
+          <input type="time" value="${i.intros}" onchange="updateField('${i.id}','intros',this.value)">
+        </div>
+        <div>
+          <label class="field">First Pitch</label>
+          <input type="time" value="${i.firstPitch}" onchange="updateField('${i.id}','firstPitch',this.value)">
+        </div>
+        <div>
+          <label class="field">Shorts Filming</label>
+          <input type="time" value="${i.shorts}" onchange="updateField('${i.id}','shorts',this.value)">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
