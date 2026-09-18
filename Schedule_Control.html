@@ -61,11 +61,8 @@
     width: 100%;
   }
   input:focus, select:focus { outline: none; border-color: var(--red); }
-  input[type="time"]::-webkit-datetime-edit-second-field,
-  input[type="time"]::-webkit-datetime-edit-millisecond-field,
-  input[type="time"]::-webkit-datetime-edit-fractional-second-field {
-    display: none;
-  }
+  .time-picker { display: flex; gap: 4px; }
+  .time-picker select { width: auto; flex: 1; min-width: 0; padding: 9px 4px; text-align: center; }
 
   .add-grid {
     display: grid;
@@ -169,21 +166,21 @@
   <div id="newGameTimesRow" class="add-grid times">
     <div>
       <label class="field">Tech Crew Places</label>
-      <input type="time" step="60" id="newTech">
+      <div id="newTechWrap"></div>
     </div>
     <div>
       <label class="field">Player Intros</label>
-      <input type="time" step="60" id="newIntros">
+      <div id="newIntrosWrap"></div>
     </div>
     <div>
       <label class="field">First Pitch</label>
-      <input type="time" step="60" id="newFirstPitch">
+      <div id="newFirstPitchWrap"></div>
     </div>
   </div>
   <div id="newSectionTimeRow" class="add-grid" style="grid-template-columns:1fr;display:none">
     <div>
       <label class="field">Start Time</label>
-      <input type="time" step="60" id="newSectionTime">
+      <div id="newSectionTimeWrap"></div>
     </div>
   </div>
   <button class="add-btn" onclick="addItem()">+ Add</button>
@@ -229,6 +226,48 @@ function teamOptions(selectedIndex) {
   document.getElementById(id).innerHTML = teamOptions(i);
 });
 
+function to12(hhmm) {
+  if (!hhmm) return { h: 12, m: 0, ap: 'AM' };
+  let [h, m] = hhmm.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  return { h, m, ap };
+}
+function to24(h, m, ap) {
+  h = Number(h); m = Number(m);
+  if (ap === 'AM') { if (h === 12) h = 0; } else if (h !== 12) h += 12;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+function timePickerHTML(id, value, itemId, field) {
+  const t = to12(value);
+  const hOpts = Array.from({ length: 12 }, (_, i) => i + 1)
+    .map(v => `<option value="${v}" ${v === t.h ? 'selected' : ''}>${v}</option>`).join('');
+  const mOpts = Array.from({ length: 60 }, (_, i) => i)
+    .map(v => `<option value="${v}" ${v === t.m ? 'selected' : ''}>${String(v).padStart(2, '0')}</option>`).join('');
+  const apOpts = ['AM', 'PM'].map(v => `<option value="${v}" ${v === t.ap ? 'selected' : ''}>${v}</option>`).join('');
+  const dataAttrs = itemId ? ` data-item="${itemId}" data-field="${field}"` : '';
+  return `<div class="time-picker" id="${id}"${dataAttrs}>
+    <select onchange="onPickerChange(this)">${hOpts}</select>
+    <select onchange="onPickerChange(this)">${mOpts}</select>
+    <select onchange="onPickerChange(this)">${apOpts}</select>
+  </div>`;
+}
+function readTimePicker(id) {
+  const [hSel, mSel, apSel] = document.getElementById(id).querySelectorAll('select');
+  return to24(hSel.value, mSel.value, apSel.value);
+}
+function onPickerChange(selectEl) {
+  const container = selectEl.parentElement;
+  const itemId = container.dataset.item;
+  if (!itemId) return;
+  updateField(itemId, container.dataset.field, readTimePicker(container.id));
+}
+
+document.getElementById('newTechWrap').innerHTML = timePickerHTML('newTech', '');
+document.getElementById('newIntrosWrap').innerHTML = timePickerHTML('newIntros', '');
+document.getElementById('newFirstPitchWrap').innerHTML = timePickerHTML('newFirstPitch', '');
+document.getElementById('newSectionTimeWrap').innerHTML = timePickerHTML('newSectionTime', '');
+
 const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
 const kindOf = i => i.kind || 'game';
 const sortKey = i => kindOf(i) === 'game' ? i.firstPitch : i.time;
@@ -258,30 +297,22 @@ function toggleAddFields() {
 function addItem() {
   const type = document.getElementById('newType').value;
   if (type === 'game') {
-    const tech = document.getElementById('newTech').value;
-    const intros = document.getElementById('newIntros').value;
-    const firstPitch = document.getElementById('newFirstPitch').value;
-    if (!tech || !intros || !firstPitch) { document.getElementById('newFirstPitch').focus(); return; }
     items.push({
       id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       kind: 'game',
       gameNum: document.getElementById('newGameNum').value,
       away: document.getElementById('newAway').value,
       home: document.getElementById('newHome').value,
-      tech, intros, firstPitch
+      tech: readTimePicker('newTech'),
+      intros: readTimePicker('newIntros'),
+      firstPitch: readTimePicker('newFirstPitch')
     });
-    document.getElementById('newTech').value = '';
-    document.getElementById('newIntros').value = '';
-    document.getElementById('newFirstPitch').value = '';
   } else {
-    const time = document.getElementById('newSectionTime').value;
-    if (!time) { document.getElementById('newSectionTime').focus(); return; }
     items.push({
       id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       kind: type,
-      time
+      time: readTimePicker('newSectionTime')
     });
-    document.getElementById('newSectionTime').value = '';
   }
   save();
 }
@@ -315,15 +346,15 @@ function gameCard(i) {
       <div class="add-grid times" style="grid-column:2/4;margin:0">
         <div>
           <label class="field">Tech Crew Places</label>
-          <input type="time" step="60" value="${i.tech}" onchange="updateField('${i.id}','tech',this.value)">
+          ${timePickerHTML('tp_' + i.id + '_tech', i.tech, i.id, 'tech')}
         </div>
         <div>
           <label class="field">Player Intros</label>
-          <input type="time" step="60" value="${i.intros}" onchange="updateField('${i.id}','intros',this.value)">
+          ${timePickerHTML('tp_' + i.id + '_intros', i.intros, i.id, 'intros')}
         </div>
         <div>
           <label class="field">First Pitch</label>
-          <input type="time" step="60" value="${i.firstPitch}" onchange="updateField('${i.id}','firstPitch',this.value)">
+          ${timePickerHTML('tp_' + i.id + '_firstPitch', i.firstPitch, i.id, 'firstPitch')}
         </div>
       </div>
     </div>
@@ -334,7 +365,7 @@ function sectionCard(i) {
   return `
     <div class="section-card">
       <div class="section-label">${SECTION_LABELS[i.kind]}</div>
-      <input type="time" step="60" value="${i.time}" onchange="updateField('${i.id}','time',this.value)">
+      ${timePickerHTML('tp_' + i.id + '_time', i.time, i.id, 'time')}
       <button class="del-btn" onclick="removeItem('${i.id}')">×</button>
     </div>
   `;
