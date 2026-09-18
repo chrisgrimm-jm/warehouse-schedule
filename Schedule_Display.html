@@ -80,7 +80,7 @@
   }
   .card.live { border-left-color: var(--gold); }
   .card.warning { border-left-color: var(--red); }
-  .card.warning .countdown { color: var(--red); animation: pulse 1s ease-in-out infinite; }
+  .countdown.urgent { color: var(--red); animation: pulse 1s ease-in-out infinite; }
   .game-badge {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 48px;
@@ -173,6 +173,7 @@ const MILESTONES = [
 const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
 const kindOf = i => i.kind || 'game';
 const WARNING_MS = 5 * 60 * 1000;
+const DUAL_MS = 2 * 60 * 1000;
 
 function gameCard(i, now, isNext) {
   const next = MILESTONES.find(m => timeToday(i[m.key]).getTime() > now);
@@ -188,14 +189,21 @@ function gameCard(i, now, isNext) {
         <span class="lbl">${m.label}</span><span class="t">${valueHtml}</span>
       </div>`;
   }).join('')}</div>`;
+  const dual = isNext && next && next.key === 'tech' && msLeft <= DUAL_MS;
   let rightHtml;
   if (!isNext) {
     rightHtml = milestonesHtml;
+  } else if (dual) {
+    const fpLeft = timeToday(i.firstPitch) - now;
+    rightHtml = `<div>
+      <div class="countdown urgent"><span class="lbl">${next.label} IN</span>${fmtCountdown(msLeft)}</div>
+      <div class="countdown"><span class="lbl">FIRST PITCH IN</span>${fmtCountdown(fpLeft)}</div>
+    </div>`;
   } else {
     const countdownHtml = live
       ? `<span class="lbl">STATUS</span>LIVE NOW`
       : `<span class="lbl">${next.label} IN</span>${fmtCountdown(msLeft)}`;
-    rightHtml = `<div>${milestonesHtml}<div class="countdown">${countdownHtml}</div></div>`;
+    rightHtml = `<div>${milestonesHtml}<div class="countdown ${warning ? 'urgent' : ''}">${countdownHtml}</div></div>`;
   }
   return `
     <div class="card ${live ? 'live' : ''} ${warning ? 'warning' : ''}">
@@ -225,7 +233,7 @@ function sectionCard(i, now, isNext) {
       <div class="matchup">
         <div class="team"><div class="name">${SECTION_LABELS[i.kind]}</div></div>
       </div>
-      <div class="countdown ${isNext ? '' : 'static'}">${countdownHtml}</div>
+      <div class="countdown ${isNext ? (warning ? 'urgent' : '') : 'static'}">${countdownHtml}</div>
     </div>
   `;
 }
