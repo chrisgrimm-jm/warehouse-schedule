@@ -170,7 +170,6 @@ const MILESTONES = [
 ];
 const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
 const kindOf = i => i.kind || 'game';
-const sortKey = i => kindOf(i) === 'game' ? i.firstPitch : i.time;
 
 function gameCard(i, now, isNext) {
   const next = MILESTONES.find(m => timeToday(i[m.key]).getTime() > now);
@@ -231,9 +230,8 @@ function render() {
     list.innerHTML = '<div class="empty">No games scheduled.</div>';
     return;
   }
-  const sorted = [...items].sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   const now = Date.now();
-  list.innerHTML = sorted.map((i, idx) => kindOf(i) === 'game' ? gameCard(i, now, idx === 0) : sectionCard(i, now, idx === 0)).join('');
+  list.innerHTML = items.map((i, idx) => kindOf(i) === 'game' ? gameCard(i, now, idx === 0) : sectionCard(i, now, idx === 0)).join('');
   fitList();
 }
 

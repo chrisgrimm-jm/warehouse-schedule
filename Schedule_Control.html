@@ -86,7 +86,7 @@
 
   .game-card {
     display: grid;
-    grid-template-columns: 70px 1fr 1fr 32px;
+    grid-template-columns: 70px 1fr 1fr 28px 32px;
     gap: 16px;
     align-items: start;
     padding: 16px 0;
@@ -102,7 +102,7 @@
   .game-badge span { display: block; font-size: 10px; color: var(--sub); letter-spacing: 1px; }
   .section-card {
     display: grid;
-    grid-template-columns: 1fr 200px 32px;
+    grid-template-columns: 1fr 200px 28px 32px;
     gap: 16px;
     align-items: center;
     padding: 16px 0;
@@ -127,6 +127,20 @@
     align-self: center;
   }
   .del-btn:hover { background: var(--red); color: white; }
+  .reorder-btns { display: flex; flex-direction: column; gap: 4px; align-self: center; }
+  .reorder-btns button {
+    background: #2a2a2a;
+    color: var(--sub);
+    font-size: 12px;
+    width: 28px;
+    height: 22px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .reorder-btns button:hover:not(:disabled) { background: var(--gold); color: #000; }
+  .reorder-btns button:disabled { opacity: 0.25; cursor: default; }
   .empty { color: var(--sub); font-style: italic; padding: 10px 0; }
   .display-link { color: var(--gold); text-decoration: none; font-size: 13px; }
   .display-link:hover { text-decoration: underline; }
@@ -271,7 +285,6 @@ document.getElementById('newSectionTimeWrap').innerHTML = timePickerHTML('newSec
 
 const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
 const kindOf = i => i.kind || 'game';
-const sortKey = i => kindOf(i) === 'game' ? i.firstPitch : i.time;
 
 let items = [];
 
@@ -282,8 +295,15 @@ ref.on('value', snap => {
 });
 
 function save() {
-  items.sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   ref.set({ items, updatedAt: Date.now() });
+}
+
+function moveItem(id, dir) {
+  const idx = items.findIndex(i => i.id === id);
+  const newIdx = idx + dir;
+  if (idx === -1 || newIdx < 0 || newIdx >= items.length) return;
+  [items[idx], items[newIdx]] = [items[newIdx], items[idx]];
+  save();
 }
 
 function toggleAddFields() {
@@ -330,7 +350,16 @@ function removeItem(id) {
   save();
 }
 
-function gameCard(i) {
+function reorderBtns(id, idx) {
+  return `
+    <div class="reorder-btns">
+      <button onclick="moveItem('${id}',-1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+      <button onclick="moveItem('${id}',1)" ${idx === items.length - 1 ? 'disabled' : ''}>▼</button>
+    </div>
+  `;
+}
+
+function gameCard(i, idx) {
   return `
     <div class="game-card">
       <div class="game-badge">G${i.gameNum}<span>GAME</span></div>
@@ -342,6 +371,7 @@ function gameCard(i) {
         <label class="field">Home</label>
         <select onchange="updateField('${i.id}','home',this.value)">${teamOptions(FRANCHISES.indexOf(i.home))}</select>
       </div>
+      ${reorderBtns(i.id, idx)}
       <button class="del-btn" onclick="removeItem('${i.id}')">×</button>
       <div style="grid-column:1/2"></div>
       <div class="add-grid times" style="grid-column:2/4;margin:0">
@@ -362,11 +392,12 @@ function gameCard(i) {
   `;
 }
 
-function sectionCard(i) {
+function sectionCard(i, idx) {
   return `
     <div class="section-card">
       <div class="section-label">${SECTION_LABELS[i.kind]}</div>
       ${timePickerHTML('tp_' + i.id + '_time', i.time, i.id, 'time')}
+      ${reorderBtns(i.id, idx)}
       <button class="del-btn" onclick="removeItem('${i.id}')">×</button>
     </div>
   `;
@@ -378,8 +409,7 @@ function render() {
     list.innerHTML = '<div class="empty">No games scheduled yet.</div>';
     return;
   }
-  const sorted = [...items].sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
-  list.innerHTML = sorted.map(i => kindOf(i) === 'game' ? gameCard(i) : sectionCard(i)).join('');
+  list.innerHTML = items.map((i, idx) => kindOf(i) === 'game' ? gameCard(i, idx) : sectionCard(i, idx)).join('');
 }
 </script>
 </body>
