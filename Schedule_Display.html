@@ -79,6 +79,8 @@
     padding: 22px 44px;
   }
   .card.live { border-left-color: var(--gold); }
+  .card.warning { border-left-color: var(--red); }
+  .card.warning .countdown { color: var(--red); animation: pulse 1s ease-in-out infinite; }
   .game-badge {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 48px;
@@ -170,10 +172,13 @@ const MILESTONES = [
 ];
 const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
 const kindOf = i => i.kind || 'game';
+const WARNING_MS = 5 * 60 * 1000;
 
 function gameCard(i, now, isNext) {
   const next = MILESTONES.find(m => timeToday(i[m.key]).getTime() > now);
   const live = isNext && !next;
+  const msLeft = isNext && next ? timeToday(i[next.key]) - now : Infinity;
+  const warning = isNext && !live && msLeft <= WARNING_MS;
   let rightHtml;
   if (!isNext) {
     rightHtml = `<div class="milestones">${MILESTONES.map(m => `
@@ -183,11 +188,11 @@ function gameCard(i, now, isNext) {
   } else {
     const countdownHtml = live
       ? `<span class="lbl">STATUS</span>LIVE NOW`
-      : `<span class="lbl">${next.label} IN</span>${fmtCountdown(timeToday(i[next.key]) - now)}`;
+      : `<span class="lbl">${next.label} IN</span>${fmtCountdown(msLeft)}`;
     rightHtml = `<div class="countdown">${countdownHtml}</div>`;
   }
   return `
-    <div class="card ${live ? 'live' : ''}">
+    <div class="card ${live ? 'live' : ''} ${warning ? 'warning' : ''}">
       <div class="game-badge">G${i.gameNum}<span>GAME</span></div>
       <div class="matchup">
         <div class="team"><div class="role">AWAY</div><div class="name">${i.away}</div></div>
@@ -202,13 +207,15 @@ function gameCard(i, now, isNext) {
 function sectionCard(i, now, isNext) {
   const start = timeToday(i.time).getTime();
   const live = isNext && now >= start;
+  const msLeft = start - now;
+  const warning = isNext && !live && msLeft <= WARNING_MS;
   const countdownHtml = !isNext
     ? `<span class="lbl">STARTS AT</span>${fmtTime(i.time)}`
     : live
       ? `<span class="lbl">STATUS</span>LIVE NOW`
-      : `<span class="lbl">STARTS IN</span>${fmtCountdown(start - now)}`;
+      : `<span class="lbl">STARTS IN</span>${fmtCountdown(msLeft)}`;
   return `
-    <div class="card ${live ? 'live' : ''}" style="grid-template-columns:1fr 480px">
+    <div class="card ${live ? 'live' : ''} ${warning ? 'warning' : ''}" style="grid-template-columns:1fr 480px">
       <div class="matchup">
         <div class="team"><div class="name">${SECTION_LABELS[i.kind]}</div></div>
       </div>
