@@ -26,7 +26,8 @@
   }
   #wrap {
     box-sizing: border-box;
-    height: calc(100% - 40px);
+    max-height: calc(100% - 40px);
+    overflow: hidden;
     margin: 20px;
     padding: 24px 56px;
     background: var(--panel);
@@ -60,9 +61,8 @@
     color: var(--gold);
   }
   #list {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: 0;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -242,9 +242,19 @@ function sectionCard(i, now, isNext) {
 }
 
 function fitList() {
+  const wrap = document.getElementById('wrap');
+  const header = document.getElementById('header');
   const list = document.getElementById('list');
   list.style.transform = 'none';
-  const factor = list.scrollHeight > list.clientHeight ? list.clientHeight / list.scrollHeight : 1;
+
+  const wrapStyle = getComputedStyle(wrap);
+  const wrapMarginV = parseFloat(wrapStyle.marginTop) + parseFloat(wrapStyle.marginBottom);
+  const maxHeight = document.body.clientHeight - wrapMarginV;
+  const wrapPadV = parseFloat(wrapStyle.paddingTop) + parseFloat(wrapStyle.paddingBottom);
+  const headerSpace = header.offsetHeight + parseFloat(getComputedStyle(header).marginBottom);
+  const availableForList = maxHeight - wrapPadV - headerSpace;
+
+  const factor = list.scrollHeight > availableForList ? availableForList / list.scrollHeight : 1;
   list.style.transform = factor < 1 ? `scale(${factor})` : 'none';
 }
 
