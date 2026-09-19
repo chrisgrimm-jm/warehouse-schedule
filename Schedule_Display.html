@@ -170,7 +170,8 @@ const MILESTONES = [
   { key: 'tech', label: 'TECH CREW PLACES' },
   { key: 'firstPitch', label: 'FIRST PITCH' }
 ];
-const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
+const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots', lunch: 'Lunch', break: 'Break' };
+const sectionLabel = i => i.kind === 'custom' ? i.label : SECTION_LABELS[i.kind];
 const kindOf = i => i.kind || 'game';
 const WARNING_MS = 5 * 60 * 1000;
 const DUAL_MS = 2 * 60 * 1000;
@@ -234,7 +235,7 @@ function sectionCard(i, now, isNext) {
   return `
     <div class="card ${live ? 'live' : ''} ${warning ? 'warning' : ''}" style="grid-template-columns:1fr 480px">
       <div class="matchup">
-        <div class="team"><div class="name">${SECTION_LABELS[i.kind]}</div></div>
+        <div class="team"><div class="name">${sectionLabel(i)}</div></div>
       </div>
       <div class="countdown ${isNext ? (warning ? 'urgent' : '') : 'static'}">${countdownHtml}</div>
     </div>

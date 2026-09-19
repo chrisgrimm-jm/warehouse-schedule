@@ -162,6 +162,9 @@
         <option value="game">Game</option>
         <option value="shorts">Shorts Filming</option>
         <option value="headshots">Headshots</option>
+        <option value="lunch">Lunch</option>
+        <option value="break">Break</option>
+        <option value="custom">Custom</option>
       </select>
     </div>
     <div id="newGameNumWrap">
@@ -187,7 +190,11 @@
       <div id="newFirstPitchWrap"></div>
     </div>
   </div>
-  <div id="newSectionTimeRow" class="add-grid" style="grid-template-columns:1fr;display:none">
+  <div id="newSectionTimeRow" class="add-grid" style="grid-template-columns:1fr 1fr;display:none">
+    <div id="newCustomLabelWrap" style="display:none">
+      <label class="field">Label</label>
+      <input type="text" id="newCustomLabel" placeholder="e.g. Awards Ceremony">
+    </div>
     <div>
       <label class="field">Start Time</label>
       <div id="newSectionTimeWrap"></div>
@@ -278,8 +285,9 @@ document.getElementById('newTechWrap').innerHTML = timePickerHTML('newTech', '')
 document.getElementById('newFirstPitchWrap').innerHTML = timePickerHTML('newFirstPitch', '');
 document.getElementById('newSectionTimeWrap').innerHTML = timePickerHTML('newSectionTime', '');
 
-const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots' };
+const SECTION_LABELS = { shorts: 'Shorts Filming', headshots: 'Headshots', lunch: 'Lunch', break: 'Break' };
 const kindOf = i => i.kind || 'game';
+const sectionLabel = i => i.kind === 'custom' ? i.label : SECTION_LABELS[i.kind];
 
 let items = [];
 
@@ -302,12 +310,14 @@ function moveItem(id, dir) {
 }
 
 function toggleAddFields() {
-  const isGame = document.getElementById('newType').value === 'game';
+  const type = document.getElementById('newType').value;
+  const isGame = type === 'game';
   document.getElementById('newGameNumWrap').style.display = isGame ? '' : 'none';
   document.getElementById('newAwayWrap').style.display = isGame ? '' : 'none';
   document.getElementById('newHomeWrap').style.display = isGame ? '' : 'none';
   document.getElementById('newGameTimesRow').style.display = isGame ? '' : 'none';
   document.getElementById('newSectionTimeRow').style.display = isGame ? 'none' : '';
+  document.getElementById('newCustomLabelWrap').style.display = type === 'custom' ? '' : 'none';
 }
 
 function addItem() {
@@ -323,11 +333,14 @@ function addItem() {
       firstPitch: readTimePicker('newFirstPitch')
     });
   } else {
-    items.push({
+    const item = {
       id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       kind: type,
       time: readTimePicker('newSectionTime')
-    });
+    };
+    if (type === 'custom') item.label = document.getElementById('newCustomLabel').value.trim() || 'Custom';
+    items.push(item);
+    if (type === 'custom') document.getElementById('newCustomLabel').value = '';
   }
   save();
 }
@@ -383,9 +396,12 @@ function gameCard(i, idx) {
 }
 
 function sectionCard(i, idx) {
+  const labelHtml = i.kind === 'custom'
+    ? `<input type="text" value="${sectionLabel(i).replace(/"/g, '&quot;')}" onchange="updateField('${i.id}','label',this.value)">`
+    : `<div class="section-label">${sectionLabel(i)}</div>`;
   return `
     <div class="section-card">
-      <div class="section-label">${SECTION_LABELS[i.kind]}</div>
+      ${labelHtml}
       ${timePickerHTML('tp_' + i.id + '_time', i.time, i.id, 'time')}
       ${reorderBtns(i.id, idx)}
       <button class="del-btn" onclick="removeItem('${i.id}')">×</button>
